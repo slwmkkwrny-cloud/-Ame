@@ -1,0 +1,298 @@
+-- SERVICES
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Stats = game:GetService("Stats")
+local UserInputService = game:GetService("UserInputService")
+
+local IS_PC = not UserInputService.TouchEnabled
+local Player = Players.LocalPlayer
+
+-- CHARACTER
+local Character, Humanoid, HRP, Animator
+local function setupChar(char)
+    Character = char
+    Humanoid = char:WaitForChild("Humanoid")
+    HRP = char:WaitForChild("HumanoidRootPart")
+    Animator = Humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", Humanoid)
+end
+setupChar(Player.Character or Player.CharacterAdded:Wait())
+Player.CharacterAdded:Connect(setupChar)
+
+-- GUI
+local gui = Instance.new("ScreenGui", Player.PlayerGui)
+gui.Name = "NeonHub"
+gui.ResetOnSpawn = false
+
+--------------------------------------------------
+-- ISLAND
+--------------------------------------------------
+local island = Instance.new("Frame", gui)
+island.Size = UDim2.new(0,200,0,40)
+island.Position = UDim2.new(0.5,-100,0,3)
+island.AnchorPoint = Vector2.new(0.5,0)
+island.BackgroundColor3 = Color3.fromRGB(10,10,10)
+Instance.new("UICorner", island).CornerRadius = UDim.new(0,12)
+Instance.new("UIStroke", island).Color = Color3.fromRGB(255,0,170)
+
+local islandText = Instance.new("TextLabel", island)
+islandText.Size = UDim2.new(1,0,1,0)
+islandText.BackgroundTransparency = 1
+islandText.Font = Enum.Font.GothamBold
+islandText.TextSize = 14
+islandText.TextColor3 = Color3.fromRGB(255,0,170)
+
+RunService.RenderStepped:Connect(function(dt)
+    local fps = math.floor(1/dt)
+    local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+    islandText.Text = "FPS: "..fps.." | PING: "..ping.."ms"
+end)
+
+--------------------------------------------------
+-- MAIN GUI
+--------------------------------------------------
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0,520,0,300)
+main.Position = UDim2.new(0.5,-260,0.55,-150)
+main.BackgroundColor3 = Color3.fromRGB(10,10,10)
+main.Active = true
+main.Draggable = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,14)
+Instance.new("UIStroke", main).Color = Color3.fromRGB(255,0,170)
+
+local guiTitle = Instance.new("TextLabel", main)
+guiTitle.Text = "snow hub | duel"
+guiTitle.Font = Enum.Font.GothamBold
+guiTitle.TextSize = 20
+guiTitle.TextColor3 = Color3.fromRGB(255,0,170)
+guiTitle.BackgroundTransparency = 1
+guiTitle.AnchorPoint = Vector2.new(0.5,0)
+guiTitle.Position = UDim2.new(0.5,0,0,8)
+guiTitle.Size = UDim2.new(0,300,0,26)
+
+local function title(txt,x)
+    local t = Instance.new("TextLabel", main)
+    t.Text = txt
+    t.Font = Enum.Font.GothamBold
+    t.TextSize = 18
+    t.TextColor3 = Color3.fromRGB(255,0,170)
+    t.BackgroundTransparency = 1
+    t.Position = UDim2.new(0,x,0,40)
+    t.Size = UDim2.new(0,240,0,30)
+end
+
+title("Movement Settings",15)
+title("Misc Settings",265)
+
+local function container(x)
+    local f = Instance.new("Frame", main)
+    f.Position = UDim2.new(0,x,0,75)
+    f.Size = UDim2.new(0,240,0,215)
+    f.BackgroundTransparency = 1
+    return f
+end
+
+local moveFrame = container(15)
+local miscFrame = container(265)
+
+--------------------------------------------------
+-- TOGGLE
+--------------------------------------------------
+local function toggle(parent,text,y,callback)
+    local b = Instance.new("TextButton", parent)
+    b.Size = UDim2.new(1,0,0,34)
+    b.Position = UDim2.new(0,0,0,y)
+    b.Text = text.." [OFF]"
+    b.Font = Enum.Font.Gotham
+    b.TextSize = 15
+    b.TextColor3 = Color3.fromRGB(255,0,170)
+    b.BackgroundColor3 = Color3.fromRGB(18,18,18)
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
+    Instance.new("UIStroke", b).Color = Color3.fromRGB(255,0,170)
+
+    local on = false
+    b.MouseButton1Click:Connect(function()
+        on = not on
+        b.Text = text.." ["..(on and "ON" or "OFF").."]"
+        callback(on)
+    end)
+end
+
+--------------------------------------------------
+-- MOVEMENT
+--------------------------------------------------
+
+-- SPEED 45 (PC + MOBILE)
+local speed45Conn
+toggle(moveFrame,"Speed 45",0,function(on)
+    if on then
+        speed45Conn = RunService.RenderStepped:Connect(function()
+            local md = Humanoid.MoveDirection
+            if md.Magnitude > 0 then
+                if IS_PC then
+                    Humanoid.WalkSpeed = 45
+                else
+                    HRP.AssemblyLinearVelocity = Vector3.new(
+                        md.X * 45,
+                        HRP.AssemblyLinearVelocity.Y,
+                        md.Z * 45
+                    )
+                end
+            end
+        end)
+    else
+        if speed45Conn then speed45Conn:Disconnect() speed45Conn=nil end
+        Humanoid.WalkSpeed = 16
+    end
+end)
+
+-- STEAL SPEED 28 (PC + MOBILE)
+local stealConn
+toggle(moveFrame,"Steal Speed 28",40,function(on)
+    if on then
+        stealConn = RunService.RenderStepped:Connect(function()
+            local md = Humanoid.MoveDirection
+            if md.Magnitude > 0 then
+                if IS_PC then
+                    Humanoid.WalkSpeed = 28
+                else
+                    HRP.AssemblyLinearVelocity = Vector3.new(
+                        md.X * 28,
+                        HRP.AssemblyLinearVelocity.Y,
+                        md.Z * 28
+                    )
+                end
+            end
+        end)
+    else
+        if stealConn then stealConn:Disconnect() stealConn=nil end
+        Humanoid.WalkSpeed = 16
+    end
+end)
+
+-- HIGH JUMP
+toggle(moveFrame,"High Jump",80,function(on)
+    Humanoid.UseJumpPower = true
+    Humanoid.JumpPower = on and 85 or 50
+end)
+
+-- UNWALK
+local animFreezeConn
+toggle(moveFrame,"Unwalk",120,function(on)
+    if on then
+        for _,t in pairs(Animator:GetPlayingAnimationTracks()) do
+            t:Stop()
+        end
+        animFreezeConn = Animator.AnimationPlayed:Connect(function(t)
+            t:Stop()
+        end)
+    else
+        if animFreezeConn then animFreezeConn:Disconnect() animFreezeConn=nil end
+    end
+end)
+
+-- SPIN BOT
+local spinConn, align, yaw = nil, nil, 0
+toggle(moveFrame,"Spin Bot",160,function(on)
+    if on then
+        Humanoid.AutoRotate = false
+        align = Instance.new("AlignOrientation")
+        align.Mode = Enum.OrientationAlignmentMode.OneAttachment
+        align.Attachment0 = Instance.new("Attachment", HRP)
+        align.MaxTorque = math.huge
+        align.Responsiveness = 200
+        align.Parent = HRP
+
+        spinConn = RunService.RenderStepped:Connect(function(dt)
+            local s = Humanoid:GetState()
+            if s == Enum.HumanoidStateType.Running or s == Enum.HumanoidStateType.Walking then
+                yaw += dt * 14
+                align.CFrame = CFrame.Angles(0, yaw, 0)
+            end
+        end)
+    else
+        Humanoid.AutoRotate = true
+        if spinConn then spinConn:Disconnect() spinConn=nil end
+        if align then align:Destroy() align=nil end
+    end
+end)
+
+--------------------------------------------------
+-- MISC
+--------------------------------------------------
+
+toggle(miscFrame,"Hitbox Expander",0,function(on)
+    for _,p in pairs(Players:GetPlayers()) do
+        if p ~= Player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local h = p.Character.HumanoidRootPart
+            h.Size = on and Vector3.new(6,6,6) or Vector3.new(2,2,1)
+            h.Transparency = on and 0.5 or 1
+            h.CanCollide = false
+        end
+    end
+end)
+
+local recoverConn
+toggle(miscFrame,"Anti Knockback",40,function(on)
+    if on then
+        recoverConn = RunService.Heartbeat:Connect(function()
+            local s = Humanoid:GetState()
+            if s == Enum.HumanoidStateType.Ragdoll
+            or s == Enum.HumanoidStateType.FallingDown
+            or s == Enum.HumanoidStateType.Physics then
+                Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+                Humanoid:ChangeState(Enum.HumanoidStateType.Running)
+            end
+        end)
+    else
+        if recoverConn then recoverConn:Disconnect() recoverConn=nil end
+    end
+end)
+
+toggle(miscFrame,"Anti Lag",80,function(on)
+    settings().Rendering.QualityLevel =
+        on and Enum.QualityLevel.Level01 or Enum.QualityLevel.Automatic
+end)
+
+toggle(miscFrame,"ESP",120,function(on)
+    for _,p in pairs(Players:GetPlayers()) do
+        if p ~= Player and p.Character then
+            if on then
+                if not p.Character:FindFirstChild("NeonESP") then
+                    local h = Instance.new("Highlight")
+                    h.Name = "NeonESP"
+                    h.FillColor = Color3.fromRGB(255,0,170)
+                    h.Parent = p.Character
+                end
+            else
+                local h = p.Character:FindFirstChild("NeonESP")
+                if h then h:Destroy() end
+            end
+        end
+    end
+end)
+
+--------------------------------------------------
+-- AUTO STEAL
+--------------------------------------------------
+local autoSteal = false
+
+toggle(miscFrame,"Auto Steal",160,function(on)
+    autoSteal = on
+    if on then
+        task.spawn(function()
+            while autoSteal do
+                for _,obj in ipairs(workspace:GetDescendants()) do
+                    if obj:IsA("ProximityPrompt")
+                    and obj.Enabled
+                    and obj.ActionText
+                    and obj.ActionText:lower() == "steal" then
+                        pcall(function()
+                            fireproximityprompt(obj, obj.HoldDuration or 0)
+                        end)
+                    end
+                end
+                task.wait(0.15)
+            end
+        end)
+    end
+end)
